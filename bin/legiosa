@@ -1,0 +1,92 @@
+#!/usr/bin/env python2
+
+import argparse
+import logging
+import math
+import os
+import sys
+
+from PIL import Image
+import numpy
+
+
+logger = logging.getLogger('legiosa')
+
+
+def roundup(a, b):
+    return int(math.ceil(float(a) / b))
+
+
+def main(argv=sys.argv[1:]):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--bricks', '-b', type=int, default=10)
+    parser.add_argument('--output', '-o')
+    parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument('file')
+
+    args = parser.parse_args(argv)
+
+    logger.setLevel(logging.DEBUG if args.verbose else logging.ERROR)
+
+    if args.output is not None and not os.path.exists(args.output):
+        raise ValueError('output directory does not exist')
+
+    filename = os.path.expandvars(args.file)
+    filename = os.path.expanduser(args.file)
+    image = Image.open(filename)
+    brick = Image.open('brick.png')
+
+    cols, rows = image.size
+    bcols, brows = brick.size
+
+    assert bcols == brows
+
+    cols = bcols * roundup(cols, bcols)
+    rows = brows * roundup(rows, brows)
+
+    scale = roundup(args.bricks * min(brows, bcols), min(rows, cols))
+
+    rows = scale * rows
+    cols = scale * cols
+
+    image = image.resize((cols, rows), resample=Image.ANTIALIAS)
+
+    array = numpy.asarray(image)
+    array.setflags(write=True)
+
+    for r in range(rows / brows):
+        for c in range(cols / bcols):
+            u = brows * r
+            v = brows * (r + 1)
+            s = bcols * c
+            t = bcols * (c + 1)
+
+            array[u:v, s:t] = array[u:v, s:t].mean(axis=(0,1))
+
+    image = Image.fromarray(array)
+
+    bands = list(brick.split())
+    bands[3] = bands[3].point(lambda x: 0.3 * x)
+
+    overlay = Image.merge("RGBA", bands)
+
+    for r in range(rows / brows):
+        for c in range(cols / bcols):
+            u = brows * r
+            v = bcols * c
+            image.paste(overlay, (v, u), overlay)
+
+    _, basename = os.path.split(args.file)
+
+    dirname = '.' if args.output is None else args.output
+    image.save('{}/lego-{}'.format(dirname, basename))
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+
+    try:
+        main()
+
+    except Exception as e:
+        logger.exception(e)
