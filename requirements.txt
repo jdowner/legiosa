@@ -1,3 +1,4 @@
+PIL
 numpy
 pep8
 tox
