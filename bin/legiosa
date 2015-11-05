@@ -4,10 +4,12 @@ import argparse
 import logging
 import math
 import os
+import StringIO
 import sys
 
 from PIL import Image
 import numpy
+import requests
 
 
 logger = logging.getLogger('legiosa')
@@ -103,7 +105,16 @@ def main(argv=sys.argv[1:]):
 
     filename = os.path.expandvars(args.file)
     filename = os.path.expanduser(args.file)
-    image = Image.open(filename)
+
+    # If the filename does not refer to a path on the filesystem, perhaps it is
+    # a URL.
+    if not os.path.exists(filename):
+        response = requests.get(filename)
+        image = Image.open(StringIO.StringIO(response.content))
+
+    else:
+        image = Image.open(filename)
+
     brick = Image.open('brick.png')
 
     cols, rows = image.size
