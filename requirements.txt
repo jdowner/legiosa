@@ -1,4 +1,4 @@
-PIL
+pillow>=1.7.8
 numpy
 pep8
 tox
