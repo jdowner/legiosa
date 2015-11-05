@@ -17,6 +17,76 @@ def roundup(a, b):
     return int(math.ceil(float(a) / b))
 
 
+def int_to_rgb(c):
+    return (c & 0xff0000) >> 16, (c & 0x00ff00) >> 8, c & 0x0000ff
+
+
+reference_colors = [
+    int_to_rgb(0xD9BB7B),
+    int_to_rgb(0xD67240),
+    int_to_rgb(0xDE000D),
+    int_to_rgb(0x0057A8),
+    int_to_rgb(0xFEC400),
+    int_to_rgb(0x010101),
+    int_to_rgb(0x007B28),
+    int_to_rgb(0x009624),
+    int_to_rgb(0xA83D15),
+    int_to_rgb(0x478CC6),
+    int_to_rgb(0xE76318),
+    int_to_rgb(0x95B90B),
+    int_to_rgb(0x9C006B),
+    int_to_rgb(0x5E748C),
+    int_to_rgb(0x8D7452),
+    int_to_rgb(0x002541),
+    int_to_rgb(0x003416),
+    int_to_rgb(0x5F8265),
+    int_to_rgb(0x80081B),
+    int_to_rgb(0xF49B00),
+    int_to_rgb(0x5B1C0C),
+    int_to_rgb(0x9C9291),
+    int_to_rgb(0x4C5156),
+    int_to_rgb(0xE4E4DA),
+    int_to_rgb(0x87C0EA),
+    int_to_rgb(0xDE378B),
+    int_to_rgb(0xEE9DC3),
+    int_to_rgb(0xFFFF99),
+    int_to_rgb(0x2C1577),
+    int_to_rgb(0xF5C189),
+    int_to_rgb(0x300F06),
+    int_to_rgb(0xAA7D55),
+    int_to_rgb(0x469bc3),
+    int_to_rgb(0x68c3e2),
+    int_to_rgb(0xd3f2ea),
+    int_to_rgb(0xa06eb9),
+    int_to_rgb(0xcda4de),
+    int_to_rgb(0xf5f3d7),
+    int_to_rgb(0xe2f99a),
+    int_to_rgb(0x77774E),
+    int_to_rgb(0x96B93B),
+    ]
+
+
+def select_color(col):
+    best_color = None
+    best_value = 3 * 256 * 256
+
+    cr, cg, cb = col
+
+    for r, g, b in reference_colors:
+        dr = cr - r
+        dg = cg - g
+        db = cb - b
+
+        value = dr * dr + dg * dg + db * db
+        if best_value > value:
+            best_value = value
+            best_color = (r, g, b)
+
+    assert best_color is not None
+
+    return best_color
+
+
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
     parser.add_argument('--bricks', '-b', type=int, default=10)
@@ -61,7 +131,7 @@ def main(argv=sys.argv[1:]):
             s = bcols * c
             t = bcols * (c + 1)
 
-            array[u:v, s:t] = array[u:v, s:t].mean(axis=(0,1))
+            array[u:v, s:t] = select_color(array[u:v, s:t].mean(axis=(0,1)))
 
     image = Image.fromarray(array)
 
