@@ -89,10 +89,41 @@ def select_color(col):
     return best_color
 
 
+def generate_image(image, brick, rows, cols, brows, bcols):
+    array = numpy.asarray(image)
+    array.setflags(write=True)
+
+    for r in range(rows / brows):
+        for c in range(cols / bcols):
+            u = brows * r
+            v = brows * (r + 1)
+            s = bcols * c
+            t = bcols * (c + 1)
+
+            array[u:v, s:t] = select_color(array[u:v, s:t].mean(axis=(0,1)))
+
+    image = Image.fromarray(array)
+
+    bands = list(brick.split())
+    bands[3] = bands[3].point(lambda x: 0.3 * x)
+
+    overlay = Image.merge("RGBA", bands)
+
+    for r in range(rows / brows):
+        for c in range(cols / bcols):
+            u = brows * r
+            v = bcols * c
+            image.paste(overlay, (v, u), overlay)
+
+    return image
+
+
+
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
     parser.add_argument('--bricks', '-b', type=int, default=10)
     parser.add_argument('--output', '-o')
+    parser.add_argument('--svg', action='store_true')
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('file')
 
@@ -132,35 +163,16 @@ def main(argv=sys.argv[1:]):
 
     image = image.resize((cols, rows), resample=Image.ANTIALIAS)
 
-    array = numpy.asarray(image)
-    array.setflags(write=True)
+    if args.svg:
+        pass
 
-    for r in range(rows / brows):
-        for c in range(cols / bcols):
-            u = brows * r
-            v = brows * (r + 1)
-            s = bcols * c
-            t = bcols * (c + 1)
+    else:
+        generate_image(image, brick, rows, cols, brows, bcols)
 
-            array[u:v, s:t] = select_color(array[u:v, s:t].mean(axis=(0,1)))
+        _, basename = os.path.split(args.file)
 
-    image = Image.fromarray(array)
-
-    bands = list(brick.split())
-    bands[3] = bands[3].point(lambda x: 0.3 * x)
-
-    overlay = Image.merge("RGBA", bands)
-
-    for r in range(rows / brows):
-        for c in range(cols / bcols):
-            u = brows * r
-            v = bcols * c
-            image.paste(overlay, (v, u), overlay)
-
-    _, basename = os.path.split(args.file)
-
-    dirname = '.' if args.output is None else args.output
-    image.save('{}/lego-{}'.format(dirname, basename))
+        dirname = '.' if args.output is None else args.output
+        image.save('{}/lego-{}'.format(dirname, basename))
 
 
 if __name__ == "__main__":
